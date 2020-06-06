@@ -5,12 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-    <title>用户注册</title>
+    <title>注册</title>
 </head>
 
 <body>
     <div>
-        <h1>用户注册:</h1>
+        <h1>注册:</h1>
         <form id="registerForm">
             <div>
                 <label>账号: <input type="text" name="name"></label>
@@ -28,6 +28,7 @@
         $form.on("submit", (e) => {
             //阻止默认事件
             e.preventDefault()
+
             const name = $form.find('input[name=name]').val()
             const password = $form.find('input[name=password]').val()
             $.ajax({

@@ -22,8 +22,62 @@ var server = http.createServer(function (request, response) {
   /******** 从这里开始看，上面不要看 ************/
 
   console.log('有个傻子发请求过来啦！路径（带查询参数）为：' + pathWithQuery)
+  if (path === "/home.html") {
+    response.setHeader("Content-Type", "text/html; charset=UTF-8")
+    const cookie = request.headers["cookie"]
+    let userId
+    try {
+      userId = cookie
+        .split(";")
+        .filter(e => e.indexOf("user_id=") >= 0)[0]
+        .split("=")[1]
+    } catch (error) {}
 
-  if (path === "/register" && method === "POST") {
+    console.log(userId)
+    if (userId) {
+      const usersArr = JSON.parse(fs.readFileSync("./db/users.json"));
+      const user = usersArr.find(user => user.id.toString() === userId)
+      const homeHTML = fs.readFileSync("./public/home.html").toString()
+      if (user) {
+        const string = homeHTML.replace("{{loginStatus}}", "已登录").replace("{{user.name}}", user.name)
+        response.write(string)
+      } else {
+
+      }
+
+    } else {
+      const string = homeHTML.replace("{{loginStatus}}", "未登录").replace("{{user.name}}", "")
+      response.write(string)
+    }
+    response.end()
+
+  } else if (path === "/login" && method === "POST") {
+    response.setHeader("Content-Type", "text/html; charset=UTF-8")
+    const arr = []
+    const usersArr = JSON.parse(fs.readFileSync("./db/users.json"));
+    request.on("data", (chunk) => {
+      arr.push(chunk)
+    })
+    request.on("end", () => {
+      //逐步解析
+      const string = Buffer.concat(arr).toString();
+      const obj = JSON.parse(string); // name password
+      const user = usersArr.find(user => user.name === obj.name && user.password === obj.password)
+
+      if (user === undefined) {
+        response.statusCode = 400
+        response.setHeader("Content-Type", "text/json;charset-UTF-8")
+        response.end(`{"errorCode": 4001}`)
+      } else {
+        response.statusCode = 200
+        response.setHeader("Set-Cookie", `user_id=${user.id}; HttpOnly`)
+        response.end()
+      }
+
+      response.end("收到")
+    })
+
+  } else if (path === "/register" && method === "POST") {
     response.setHeader("Content-Type", "text/html; charset=UTF-8")
     const arr = []
     const usersArr = JSON.parse(fs.readFileSync("./db/users.json"));
