@@ -20,33 +20,35 @@ var server = http.createServer(function (request, response) {
   var method = request.method
 
   /******** 从这里开始看，上面不要看 ************/
+  const session = JSON.parse(fs.readFileSync("./session.json").toString())
 
   console.log('有个傻子发请求过来啦！路径（带查询参数）为：' + pathWithQuery)
   if (path === "/home.html") {
     response.setHeader("Content-Type", "text/html; charset=UTF-8")
     const cookie = request.headers["cookie"]
-    let userId
+    let sessionId
     try {
-      userId = cookie
+      sessionId = cookie
         .split(";")
-        .filter(e => e.indexOf("user_id=") >= 0)[0]
+        .filter(e => e.indexOf("session_id=") >= 0)[0]
         .split("=")[1]
     } catch (error) {}
 
-    console.log(userId)
-    if (userId) {
+    console.log(sessionId)
+    if (sessionId && session[sessionId]) {
+      const userId = session[sessionId].user_id
       const usersArr = JSON.parse(fs.readFileSync("./db/users.json"));
-      const user = usersArr.find(user => user.id.toString() === userId)
+      const user = usersArr.find(user => user.id === userId)
       const homeHTML = fs.readFileSync("./public/home.html").toString()
+      let string = ""
       if (user) {
-        const string = homeHTML.replace("{{loginStatus}}", "已登录").replace("{{user.name}}", user.name)
+        string = homeHTML.replace("{{loginStatus}}", "已登录").replace("{{user.name}}", user.name)
         response.write(string)
-      } else {
-
       }
 
     } else {
-      const string = homeHTML.replace("{{loginStatus}}", "未登录").replace("{{user.name}}", "")
+      const homeHTML = fs.readFileSync("./public/home.html").toString()
+      const string = homeHTML.replace("{{loginStatus}}", "未登录").replace("{{user.name}}", "游客身份")
       response.write(string)
     }
     response.end()
@@ -70,7 +72,12 @@ var server = http.createServer(function (request, response) {
         response.end(`{"errorCode": 4001}`)
       } else {
         response.statusCode = 200
-        response.setHeader("Set-Cookie", `user_id=${user.id}; HttpOnly`)
+        const random = Math.random()
+        session[random] = {
+          user_id: user.id
+        }
+        fs.writeFileSync("./session.json", JSON.stringify(session))
+        response.setHeader("Set-Cookie", `session_id=${random}; HttpOnly`)
         response.end()
       }
 
